@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            text-align: center;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        textarea {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 8px;
+        }
+
+        button {
+            background-color: #4caf50;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+    <title>Daily Activities Tracker</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Daily Activities Tracker</h1>
+        <div id="activityList"></div>
+        <textarea id="activityInput" placeholder="Enter your activity"></textarea>
+        <button onclick="addActivity()">Add Activity</button>
+        <button onclick="downloadActivities()">Download Activities</button>
+    </div>
+    <script>
+        let activities = [];
+
+        function addActivity() {
+            const activityInput = document.getElementById('activityInput');
+            const activityList = document.getElementById('activityList');
+
+            const currentDate = new Date();
+            const dateString = currentDate.toLocaleString();
+
+            const activityText = activityInput.value.trim();
+
+            if (activityText !== '') {
+                const activityEntry = document.createElement('div');
+                activityEntry.className = 'activity-entry';
+                activityEntry.innerHTML = `<strong>${dateString}:</strong> ${activityText}`;
+
+                activityList.appendChild(activityEntry);
+
+                // Save activity to the array
+                activities.push(`${dateString}: ${activityText}`);
+
+                activityInput.value = '';
+            }
+        }
+
+        function downloadActivities() {
+            const activitiesText = activities.join('\n');
+            
+            const blob = new Blob([activitiesText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'activities.txt';
+            document.body.appendChild(a);
+            a.click();
+
+            // Cleanup
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

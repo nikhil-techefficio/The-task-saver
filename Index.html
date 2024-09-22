@@ -3,55 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="manifest" href="manifest.json">
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Roboto', sans-serif;
             margin: 0;
             padding: 0;
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background-color: #f4f4f4;
+            background-color: #e9ecef;
+            color: #333;
         }
 
         .container {
-            text-align: center;
             background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #4caf50;
+        }
+
+        #activityList {
+            text-align: left;
+            margin-bottom: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        #activityList div {
+            background-color: #f7f7f7;
+            border-left: 4px solid #4caf50;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-size: 14px;
         }
 
         textarea {
             width: 100%;
+            height: 80px;
+            margin-bottom: 15px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        textarea:focus {
+            border-color: #4caf50;
+            box-shadow: 0 0 6px rgba(76, 175, 80, 0.3);
+        }
+
+        .toolbar {
             margin-bottom: 10px;
+        }
+
+        .toolbar button,
+        .toolbar select {
             padding: 8px;
-        }
-
-        button {
-            background-color: #4caf50;
-            color: #fff;
-            border: none;
-            padding: 10px 20px;
+            margin-right: 5px;
             border-radius: 4px;
+            border: 1px solid #ddd;
+            font-size: 14px;
             cursor: pointer;
+            transition: background-color 0.3s ease;
         }
 
-        button:hover {
+        .toolbar button:hover,
+        .toolbar select:hover {
+            background-color: #f0f0f0;
+        }
+
+        .btn {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin: 5px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            outline: none;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn:hover {
             background-color: #45a049;
         }
+
+        .btn-group {
+            margin-top: 10px;
+        }
     </style>
-    <title>Niki Activities Tracker</title>
+    <title>Daily Activities Tracker</title>
 </head>
 <body>
     <div class="container">
-        <h1>Niki Activities Tracker</h1>
+        <h1>Daily Activities Tracker</h1>
+
+        <!-- Text Formatting Toolbar -->
+        <div class="toolbar">
+            <select id="fontSize" onchange="changeFontSize()">
+                <option value="12px">Font Size</option>
+                <option value="14px">14px</option>
+                <option value="16px">16px</option>
+                <option value="18px">18px</option>
+                <option value="20px">20px</option>
+            </select>
+
+            <select id="fontColor" onchange="changeFontColor()">
+                <option value="">Font Color</option>
+                <option value="black">Black</option>
+                <option value="red">Red</option>
+                <option value="blue">Blue</option>
+                <option value="green">Green</option>
+            </select>
+
+            <button onclick="toggleBold()">B</button>
+            <button onclick="toggleItalic()">I</button>
+        </div>
+
         <div id="activityList"></div>
+
         <textarea id="activityInput" placeholder="Enter your activity"></textarea>
-        <button onclick="addActivity()">Add Activity</button>
-        <button onclick="downloadActivities()">Download Activities</button>
+        <button class="btn" onclick="addActivity()">Add Activity</button>
+
+        <!-- Download Dropdown -->
+        <div class="btn-group">
+            <select id="downloadFormat">
+                <option value="text">Text</option>
+                <option value="pdf">PDF</option>
+                <option value="excel">Excel</option>
+                <option value="json">JSON</option>
+            </select>
+            <button class="btn" onclick="downloadSelected()">Download</button>
+        </div>
     </div>
+
     <script>
         let activities = [];
 
@@ -70,29 +175,97 @@
                 activityEntry.innerHTML = `<strong>${dateString}:</strong> ${activityText}`;
 
                 activityList.appendChild(activityEntry);
-
-                // Save activity to the array
-                activities.push(`${dateString}: ${activityText}`);
-
+                activities.push({ date: dateString, activity: activityText });
                 activityInput.value = '';
             }
         }
 
-        function downloadActivities() {
-            const activitiesText = activities.join('\n');
-            
+        function downloadSelected() {
+            const format = document.getElementById('downloadFormat').value;
+
+            if (format === 'text') {
+                downloadText();
+            } else if (format === 'pdf') {
+                downloadPDF();
+            } else if (format === 'excel') {
+                downloadExcel();
+            } else if (format === 'json') {
+                downloadJSON();
+            }
+        }
+
+        function downloadText() {
+            const activitiesText = activities.map(a => `${a.date}: ${a.activity}`).join('\n');
             const blob = new Blob([activitiesText], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
-
             const a = document.createElement('a');
             a.href = url;
             a.download = 'activities.txt';
             document.body.appendChild(a);
             a.click();
-
-            // Cleanup
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+        }
+
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            activities.forEach((activity, index) => {
+                doc.text(`${index + 1}. ${activity.date}: ${activity.activity}`, 10, 10 + (index * 10));
+            });
+            doc.save('activities.pdf');
+        }
+
+        function downloadExcel() {
+            const worksheet = XLSX.utils.json_to_sheet(activities);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Activities');
+            XLSX.writeFile(workbook, 'activities.xlsx');
+        }
+
+        function downloadJSON() {
+            const json = JSON.stringify(activities, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'activities.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Text Formatting Functions
+        function changeFontSize() {
+            const fontSize = document.getElementById('fontSize').value;
+            document.getElementById('activityInput').style.fontSize = fontSize;
+        }
+
+        function changeFontColor() {
+            const fontColor = document.getElementById('fontColor').value;
+            document.getElementById('activityInput').style.color = fontColor;
+        }
+
+        function toggleBold() {
+            const input = document.getElementById('activityInput');
+            input.style.fontWeight = input.style.fontWeight === 'bold' ? 'normal' : 'bold';
+        }
+
+        function toggleItalic() {
+            const input = document.getElementById('activityInput');
+            input.style.fontStyle = input.style.fontStyle === 'italic' ? 'normal' : 'italic';
+        }
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('service-worker.js').then(function(registration) {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, function(err) {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
         }
     </script>
 </body>
